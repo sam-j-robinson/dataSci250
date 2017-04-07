@@ -1,0 +1,307 @@
+---
+title: "DS250 - Introduction to Data Science"
+author: "Student Name"
+date: "October 25, 2016"
+output:  html_document
+---
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+```
+```{r}
+rm( list = ls())  # Clear environment
+```
+
+### Assignment 4 - Introduction to Machine Learning
+
+This assignment introduces the core concepts and tools used for automated prediction using Machine Learning. The concepts covered in this assignment include supervised and un-supervised learning algorithms, feature analysis, dimensionalality reduction, primary component analysis, statistical validation, and results evalution using ROC plots.
+
+#### The objectives of this assignment are:
+* Understand the types of machine learning
+* Evaluate and prepare test and training data
+* Define and adjust model parameters
+* Evaluate model performance
+
+***
+#### Question 1 - Machine Learning
+**a**\. Briefly describe three differences between Supervised and Unsupervised Machine Learning:
+
+````
+Supervised has known vectors, unsupervised machine learning models are not aware of the vectors.
+Unsupervised learning are likely to take more time to learn what it needs to know.
+
+````
+
+**b**\. What does the term 'dimensionality reduction' mean? Describe some of the activities involved.
+
+
+````
+Reducing the number of variables that are being considered by your machien model. This requires some knowledge of what you are researching and deciding ahead of time what variables are likely to be most important to what you are trying to decipher.
+````
+
+**c**\. Describe some common approaches for identifying contributing variables:
+
+````
+Talking to stakeholders in your machine learning and figuring out what they feel is most important. Running unsupervised machine learning models. Reviewing output of previous models and running more unsupervised models. Analyzing historical data trends and behaviors.
+````
+
+***
+#### Question 2 - Machine Learning
+**a**\. Describe 'overfitting' and some approaches to address it.
+
+````
+Overfitting is when a machine learning model is too finely tuned to a set of data and introducing more information causes it to be less accurated. You can address this by exposing your machien learning model to more data and figuring out what level of accuracy is important or necessary for your tasks.
+````
+
+**b**\. Describe 'underfitting' and some of the approaches to address it.
+
+````
+Underfitting is when you don't have enough data or a good enough model to address the problem asked. Testing different types of machine learning models, exposing your model to more data and introducing more vectors to your machine learning model.
+````
+
+**c**\. What are 'training' and 'test' data sets? Why can't a training data set be used to model evaluation?
+
+````
+Training and test data sets are used to help your model discover what are "correct" answers to the questions you are asking. It is a set of data to help validate the model you are setting up. 
+````
+
+***
+#### Question 3 - Linear Regression
+**a**\. Load sample data set: Temperature and Ice Cream sales
+
+````{r echo=TRUE}
+icecream <- data.frame(
+   temp=c(11.9, 14.2, 15.2, 16.4, 17.2, 18.1, 
+          18.5, 19.4, 22.1, 22.6, 23.4, 25.1),
+  units=c(185L, 215L, 332L, 325L, 408L, 421L, 
+          406L, 412L, 522L, 445L, 544L, 614L)
+  )
+````
+
+**b**\. Create a plot units of ice cream sold by temperature
+
+````{r echo=TRUE}
+plot(units ~ temp, data=icecream, bty="n", lwd=2,
+     main="Ice cream Units Sold", col="#00526D", 
+     xlab="Temperature (Celsius)", 
+     ylab="Units sold")
+axis(side = 1, col="grey")
+axis(side = 2, col="grey")
+````
+
+**c**\. Create a regression model (*lm or glm*) for the **icecream** data set and print the model summary
+
+````
+icecreamlm <- lm(units ~ temp, data=icecream)
+summary(icecreamlm)
+
+Call:
+lm(formula = units ~ temp, data = icecream)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-75.512 -12.566   4.133  22.236  49.963 
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept) -159.474     54.641  -2.919   0.0153 *  
+temp          30.088      2.866  10.499 1.02e-06 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 38.13 on 10 degrees of freedom
+Multiple R-squared:  0.9168,	Adjusted R-squared:  0.9085 
+F-statistic: 110.2 on 1 and 10 DF,  p-value: 1.016e-06
+
+````
+
+**d**\. Plot the **icecream** regression model including the confidence intervals
+
+````
+abline(icecreamlm, lwd=3, col="blue")
+icecreampredict <- predict(icecreamlm, interval = "confidence")
+xVals <- icecream$temp
+lines(xVals, icecreampredict[,2], lty=2)
+lines(xVals, icecreampredict[,3], lty=2)
+````
+***
+#### Question 4 - Binomial Regression
+**a**\. Load sample data set: (http://www.ats.ucla.edu/stat/data/binary.csv)
+
+````{r echo=TRUE}
+students <- read.csv("http://www.ats.ucla.edu/stat/data/binary.csv")
+````
+
+**b**\. Create a logistic regression model using (*glm*) for student admissions
+
+````{r echo=TRUE}
+studentglm<- glm(admit~., family=binomial, data = students)
+summary(studentglm)
+````
+
+**c**\. Plot the student regression model including confidence intervals
+
+````{r echo=TRUE}
+predictData <- seq(0, 4, by=.01)
+admitPredict <- predict(studentglm, newdata = predictData, type="response")
+library(ggplot2)
+ggplot(students, aes(students$gpa, admitPredict))+geom_line()
+
+````
+
+***
+#### Question 5 - Supervised Learning
+**a**\. Using the following, classify two data sets using kNN (Nearest Neighbor):
+
+````{r echo=TRUE}
+
+# Class A
+ A1<-c(0,0)
+ A2<-c(1,1)
+ A3<-c(2,2)
+
+# Class B
+ B1<-c(6,6)
+ B2<-c(5.5,7)
+ B3<-c(6.5,5)
+ 
+ I found this question extremely confusing. Is the goal to use KNN to validate the classification already provided or is it to create a KNN model from this data that we will use later on? If it is the latter it feels appropriate to add in the vectors which vectors belong to A and B in advanced but I cant tell if that is what is being looked for.
+ 
+ Turns out my problem came from using answer in my test data.
+ A1=c(0,0,1)
+ A2=c(1,1,1)
+ A3=c(2,2,1)
+ B1=c(6,6,0)
+ B2=c(5.5,7,0)
+ B3=c(6.5,5,0)
+ library(class)
+ classA <- rbind(A1, A2, A3)
+ classB <- rbind(B1, B2, B3)
+ 
+ train <- rbind(A1, A2, A3, B1, B2, B3)
+ 
+ test <- c(4,4)
+ 
+ classAll <- rbind(classA, classB)
+ classDF <- data.frame(classAll)
+ names(classDF) <- c("x", "y", "isA")
+ train <- data.frame(rbind(A2, A3, B1, B2))
+ test <- data.frame(rbind(A1, B3))
+ names(test) <- c("x", "y", "isA")
+ names(train) <- c("x", "y", "isA")
+ class_pred <- knn(train=train, test=test, cl=train$isA, k=1)
+ 
+classAll <- rbind(classA, classB)
+test <- c(4,4)
+train <- rbind(A1, A2, A3, B1, B2, B3)
+model1 <- c
+ 
+````
+
+**b**\. From the model in **a**, test the kNN model against a different test value:
+
+> test=c(3.5, 3.5) # is this an A or B?
+
+
+````{r echo=TRUE}
+table(class_pred, newTest)
+          newTest
+class_pred 3.5
+         A   1
+         B   0
+````
+
+**c**\. Create a scatter plot showing the A and B class objects and the test objects.
+
+
+````{r echo=TRUE}
+library(ggplot2)
+ggplot(classDF, aes(classDF$x, classDF$y))+geom_point()
+````
+
+***
+#### Question 6 - Cluster Analysis
+**a**\. Identify the number of clusters in the following data and plot the data points.
+
+````{r echo=TRUE}
+n = 1000
+g = 6
+set.seed(g)
+d <- data.frame(x = unlist(lapply(1:g, function(i) rnorm(n/g, runif(1)*i^2))),
+                y = unlist(lapply(1:g, function(i) rnorm(n/g, runif(1)*i^2))))
+
+#install.packages("fpc")
+library(fpc)
+pamk.best <- pamk(d)
+pamk.best$nc
+````
+
+**b**\. Exploratory Data Analysis  - Create scatterplot showing cluster distribution
+
+````{r echo=TRUE}
+plot(d, type = "p", col="blue", xlim=c(-5,30), ylim=c(-5,20), main="Initial Cluster Data", xlab="X", ylab="Y")
+````
+
+**c**\. Cluster Analysis - Calculate the 'Within Groups Sum of Squares' to estimate optimal 'K'
+
+````{r echo=TRUE}
+install.packages("fpc")
+library(fpc)
+pamk.best <- pamk(d)
+pamk.best$nc
+````
+
+**d**\. Model - Create K-Means model and display fit results.
+
+library(NbClust)
+NbClust(d, min.nc = 3, max.nc = 9, method="kmeans")
+
+* Among all indices:                                                
+* 6 proposed 3 as the best number of clusters 
+* 12 proposed 4 as the best number of clusters 
+* 3 proposed 6 as the best number of clusters 
+* 1 proposed 7 as the best number of clusters 
+* 1 proposed 8 as the best number of clusters 
+
+                   ***** Conclusion *****                            
+ 
+* According to the majority rule, the best number of clusters is  4 
+
+
+````{r echo=TRUE}
+library(cluster)
+clusplot(pam(x=d, k=pamk.best$nc), main="Cluster Data With Plot")
+````
+
+***
+#### Question 7 - Cluster Analysis
+**a**\. Retrieve sample data from: (http://archive.ics.uci.edu/ml/machine-learning-databases/wine)
+
+````{r echo=TRUE}
+wine.data <- read.csv("http://archive.ics.uci.edu/ml/machine-learning-databases/wine/wine.data")
+
+colnames(wine.data) <- c("Region", "Alcohol", "Malic Acid", "Ash","Alcalinity", "Magnesium", "Total Phenols","Flavanoids", "Nonflavanoid Phenols","Proanthocyanins", "Color", "Hue","OD280/OD315", "Proline")
+````
+
+**b**\. Cluster Analysis - Determine optimal number of clusters
+
+````{r echo=TRUE}
+library(fpc)
+pamk.best <- pamk(wine.data)
+pamk.best$nc = 2
+````
+
+**c**\. Evaluate model fit results
+
+````{r echo=TRUE}
+clusplot(pam(x=wine.data, k=pamk.best$nc), main="Cluster Data With Plot")
+Looks terrible, I don't believe this is a good fit.
+````
+
+***
+#### Question 8 (Optional) - Probability Problem
+The race track has **5** lanes. There are **25** horses and we need to find out the **3** fastest horses.
+What is the **minimum number of races** we need to conduct to determine the 3 fastest horses? (Explain your answer)
+
+(*NOTE: Assume the horses run the same speed in all races.*)  
+
+#### **End**

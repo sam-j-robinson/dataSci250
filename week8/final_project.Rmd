@@ -1,0 +1,129 @@
+---
+title: "College and Debt"
+author: "Sam Robinson"
+date: "11/29/2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Final Project
+
+``` {r "Question 1 and 2"}
+#install.packages("readr")
+#install.packages("plyr")
+#install.packages("reshape2")
+library(readr)
+library(plyr)
+library(reshape2)
+#mdcsv <- read_csv("~/Desktop/schoolwork/dataSci250/week8/CollegeScorecard_Raw_Data/Most-Recent-Cohorts-All-Data-Elements.csv")
+url="https://ed-public-download.apps.cloud.gov/downloads/Most-Recent-Cohorts-All-Data-Elements.csv"
+mdcsv = as.data.frame(read.csv(url, header=TRUE))
+
+ucHD <- mdcsv[,c("REGION", "HIGHDEG")]
+hdCounts <- count(ucHD, REGION ~ HIGHDEG)
+hdMCounts <- acast(hdCounts, REGION ~ HIGHDEG, value.var = "freq")
+hdMCounts <- na.omit(hdMCounts)
+
+ucPD <- mdcsv[,c("REGION", "PREDDEG")]
+pdCounts <- count(ucPD, REGION ~ PREDDEG)
+pdMCounts <- acast(pdCounts, REGION ~ PREDDEG, value.var = "freq")
+pdMCounts <- na.omit(pdMCounts)
+
+
+degreeInfo <- mdcsv[,c(4, 62:99)]
+da <-  mdcsv[, c("D150_4",	"D150_L4",	"D150_4_POOLED",	"D150_L4_POOLED")]
+is.na(da) <- da == "NULL"
+da[is.na(da)] <- 0
+awardedList <- pmax(da$D150_4, da$D150_L4, da$D150_4_POOLED, da$D150_L4_POOLED)
+awardedList[awardedList == 0] <- NA
+degreeInfo['awarded'] <- awardedList
+degreeInfo <- as.data.frame(na.omit(degreeInfo))
+```
+
+## Questions 3
+```{r "Q3 Hypothesis"}
+"Hypothesis: The gender wage gap manifests itself before women even enter the work force and can be reflected through government loans. I also want to show how it is different in different parts of the country if applicable."
+```
+
+```{r "Bias Analysis"}
+"We really only have data from government loans which is not a complete set of all the students receiving loans. We also do not have a lot of information about what happens to these students post graduation (I think). There is also some debate about weather or not the Gender Pay Gap is real so some people looking at my data may dismiss the test because I am coming from a position where that is real."
+```
+
+```{r "Hypothesis Anlaysis"}
+library(dplyr)
+library(fun)
+femaleData <- select(mdcsv, starts_with("FEMALE"))
+femaleData$REGION <- mdcsv$REGION
+femaleData$OPEID <- mdcsv$OPEID
+is.na(femaleData) <- femaleData == "PrivacySuppressed"
+is.na(femaleData) <- femaleData == "NULL"
+femaleData[is.na(femaleData)] <- 0
+
+maleData <- select(mdcsv, starts_with("MALE"))
+maleData$REGION <- mdcsv$REGION 
+maleData$OPEID <- mdcsv$OPEID
+is.na(maleData) <- maleData == "PrivacySuppressed"
+is.na(maleData) <- maleData == "NULL"
+maleData[is.na(maleData)] <- 0
+
+allData <- merge(femaleData, maleData, by=c("OPEID", "REGION"))
+allData <- as.data.frame(lapply(allData,as.numeric))
+
+yearSplits <- c('YR3_RT', 'YR4_RT', 'YR6_RT', 'YR8_RT')
+finishers <- 'COMP'
+genders <- c('MALE', 'FEMALE')
+allData[,] <- sapply(allData[,], function(x) as.numeric(as.character(x)))
+#normally I would write a function to do something like this but in the interest of times I'm trying to speed this up.
+allData$year3CompF <- rowSums(allData[,c('FEMALE_COMP_ORIG_YR3_RT', 'FEMALE_COMP_4YR_TRANS_YR3_RT','FEMALE_COMP_2YR_TRANS_YR3_RT')])
+allData$year4CompF <- rowSums(allData[,c('FEMALE_COMP_ORIG_YR4_RT', 'FEMALE_COMP_4YR_TRANS_YR4_RT','FEMALE_COMP_2YR_TRANS_YR4_RT')])
+allData$year6CompF <- rowSums(allData[,c('FEMALE_COMP_ORIG_YR6_RT', 'FEMALE_COMP_4YR_TRANS_YR6_RT','FEMALE_COMP_2YR_TRANS_YR6_RT')])
+allData$year8CompF <- rowSums(allData[,c('FEMALE_COMP_ORIG_YR8_RT', 'FEMALE_COMP_4YR_TRANS_YR6_RT','FEMALE_COMP_2YR_TRANS_YR8_RT')])
+allData$year3CompM <- rowSums(allData[,c('MALE_COMP_ORIG_YR3_RT', 'MALE_COMP_4YR_TRANS_YR3_RT','MALE_COMP_2YR_TRANS_YR3_RT')])
+allData$year4CompM <- rowSums(allData[,c('MALE_COMP_ORIG_YR4_RT', 'MALE_COMP_4YR_TRANS_YR4_RT','MALE_COMP_2YR_TRANS_YR4_RT')])
+allData$year6CompM <- rowSums(allData[,c('MALE_COMP_ORIG_YR6_RT', 'MALE_COMP_4YR_TRANS_YR6_RT','MALE_COMP_2YR_TRANS_YR6_RT')])
+allData$year8CompM <- rowSums(allData[,c('MALE_COMP_ORIG_YR8_RT', 'MALE_COMP_4YR_TRANS_YR6_RT','MALE_COMP_2YR_TRANS_YR8_RT')])
+
+subView <- allData[,c('year3CompF','year4CompF','year6CompF','year8CompF', 
+                      'year3CompM', 'year4CompM', 'year6CompM', 'year8CompM',
+                      'FEMALE_RPY_1YR_RT', 'MALE_RPY_1YR_RT', 'FEMALE_RPY_3YR_RT', 'MALE_RPY_3YR_RT',
+                      'FEMALE_RPY_5YR_RT', 'MALE_RPY_5YR_RT', 'FEMALE_RPY_7YR_RT', 'MALE_RPY_7YR_RT')]
+
+library(corrplot)
+subCor <- cor(subView)
+corrplot(subCor)
+
+#Looking at the correlation plot is inclonclusive as to weather the male or female data is representative of quicker payback of the loans. This is not a great way to look at the data but given my time constraints it is what I'll end up doing.
+# Given more time and resources I would likely be looking at a bunch of different variabels related to the male vs. female cohors.
+# I would want to remove low sample size of one gender or another from individual colleges, break it down by region, see if any schools in particular are producing worse results, see what happens at top ranked schools. Compare it to graduation ranks and at the end I would make an infographic that outlines the differences in repayment, graduation etc. rates between the two genders as well as outline my results and potential biases.
+```
+
+##Question 4
+``` {}
+I am getting frustrated that this is more about trying to read this data than it is about the math involved with analyzing it. I get that both are important parts of data science but at this juncture I'm just going to psudo code my way through the rest of it and take what partial credit I can get.
+
+Get a dataframe of each college, ecah degree and have the matrix include the expected income from that degree, I would also do the same for expected costs of that degree. I would compare the data by both gross income and a percentage of what you pay for the degree and see which one appears to make more sense. If your ROI is 10x on a degree than it will likely be the winner, but not if that degreen only costs a few thousand dollars to get. It would still make it a viable option for some people but is unlikely to be the highest value.
+
+I could use that information to answer both questions by looking at the average or mean per college and the average or mean per degree.
+```
+
+##Question 5
+```{}
+I would create a seperate data frame that is a subset of the original csv. It would include all the demographic information for graduation based on percentages. I would run those percentages through a nueral network (because I like working with neural networks when I already have percentages) or I would use a simple linear regression model because that makes a lot of sense. My guess is that White people from Affluent families have the highest correlation with graduating and with repaying their loans.
+```
+
+##Question 6
+``` {}
+I contemplated just posting a picture of my 8 day old son but I really don't have a whole lot for this. I could provide my half hearted correlation plot but really I would be most interested in seeing this data as a decision tree. The decision tree would do a good job of seeing the most important factors quickly while stillg etting the end result desired from quesiton 5 in a clear to read kind of way.
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

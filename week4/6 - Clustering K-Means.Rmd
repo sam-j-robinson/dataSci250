@@ -1,0 +1,113 @@
+---
+title: "Intro to Machine Learning"
+date: "October 25, 2015"
+output:  html_document
+---
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+```
+```{r}
+rm( list = ls())  # Clear environment
+```
+
+# Lab 6.7 - Clustering
+
+````{r}
+# install.packages("compareGroups")
+# install.packages("HDclassif")
+# install.packages("NbClust")
+# install.packages("sparcl")
+
+library(cluster)            #conduct cluster analysis
+library(compareGroups)      #build descriptive statistic tables
+library(HDclassif)          #contains the dataset
+library(NbClust)            #cluster validity measures
+library(sparcl)             #colored dendrogram
+````
+
+***
+## 1\. Clustering with K-Means
+
+#### a\. Load data
+
+```{r}
+data(wine)
+names(wine) = c("Class", "Alcohol", "MalicAcid", "Ash", "Alk_ash", "magnesium", "T_phenols", "Flavanoids", "Non_flav", "Proantho", "C_Intensity", "Hue", "OD280_315", "Proline")
+df = as.data.frame(scale(wine[,-1]))
+table(wine$Class)
+```
+
+#### b\. Determine optimal "k" value
+
+```{r}
+NbClust(df, min.nc=2, max.nc=15, method="kmeans")
+```
+
+#### c\. Create model
+
+```{r}
+set.seed(1234)
+km=kmeans(df,3,nstart=25)
+table(km$cluster)
+````
+
+#### Evaluate clusters
+
+```{r}
+km$centers
+```
+
+```{r}
+wine$km_cluster = km$cluster
+boxplot(Alcohol~km_cluster, data=wine, main="Alcohol Content, K-Means")
+#boxplot(Alcohol~ward_cluster, data=wine, main="Alcohol Content, Ward's")
+```
+
+#### Confusion Matrix
+
+```{r}
+table(km$cluster, wine$Class)
+```
+
+***
+## 2\. Hierarchical clustering
+
+#### a\. Determine optimal number of clusters
+
+```{r}
+numComplete = NbClust(df, distance="euclidean", min.nc=2, max.nc=6, method="complete", index="all")
+```
+
+####  Review model
+
+```{r}
+numComplete$Best.nc
+```
+
+```{r}
+dis = dist(df, method="euclidean")
+```
+
+```{r}
+hc = hclust(dis, method="complete")
+```
+
+```{r}
+plot(hc, hang=-1,labels=FALSE, main="Complete-Linkage")
+```
+
+```{r}
+comp3 = cutree(hc, 3)
+```
+
+```{r}
+ColorDendrogram(hc, y = comp3, main = "Complete", branchlength = 50)
+```
+
+```{r}
+table(comp3)
+```
+
+
+
+#### **End**

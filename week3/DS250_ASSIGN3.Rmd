@@ -1,0 +1,406 @@
+---
+title: "DS250 - Introduction to Data Science"
+author: "Student Name"
+date: "October 20, 2015"
+output:  html_document
+---
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+```
+```{r}
+rm( list = ls())  # Clear environment
+```
+
+# Assignment 3 - Getting Started with Statistics
+
+This assignment covers core concepts in data and descriptive and inferential statistics. Statistical analysis is one of the primary tools of a Data Scientist used in understanding data, testing validity, and making predictions.
+
+### The objectives of this assignment:
+* Understand the types of data
+* Review core concepts in descriptive statistics
+* High level review of probability distributions
+* Practice making predictions using regression and probability
+
+***
+#### Question 1 - Types of Data
+**a**\. Describe some of the differences between qualitative and quantitative data:
+
+````
+Quantitative data tends to be numeric in nature and has a less discrete amount of variables that a number can be. Things like temperature, spending or frequencies can all be quantitative data. Qualitative data is the existence of a specific variable like hair color, skin color or if someone has or has not spent.
+````
+
+**b**\. Describe some of the differences between an interval and a ratio:
+
+````
+Interval variables are variables where the difference between variables remains meaningful. I.E the difference between 70 pounds and 60 pounds is equal to the difference between 60 and 50 pounds, which wouldn't be the case with a logrithmic scale. Ratios are similar to interval variables except MUST have a true 0. This would mean that celcius is not a ratio variable but kelvin is. This would also mean that weight is a ratio variable as well because 0 pounds would equate to no weight.
+````
+
+**c**\. From the image below, identify the statistical data types in the departure table:
+(https://canvas.uw.edu/users/3264551/files/38442830/download?download_frd=1)
+Time: Quantitative
+Destination: Qualitiative
+Flight No: Qualitative
+Gate: Qualitative
+Remarks: Qualitative
+
+***
+#### Question 2 - Distributions
+**a**\. Central Tendency: Briefly describe the following measures:
+
+* Mode - The number repeated most often. 
+* Median - The number where 50% of the numbers are above and 50% of the numbers are below that number.
+* Mean - The sum of the numbers divided by all the numbers.
+
+````
+
+````
+
+**b**\. Dispersion: Briefly describe the following measures:
+
+* Range - The difference between the largest and smallest observable value.
+* Variance - The average of the squared differences from the mean.
+* Standard deviation - A measurement for how spread out numbers are from a group of numbers. Helps define the likelihood of a number showing up in a range.
+
+````
+
+````
+
+**c**\. Using the following sequence, create a plot of the normal distribution with a mean = 0 and standard deviation = 1.
+
+````{r echo=TRUE}
+x <- seq(-5,3, 0.01)
+
+the r line for this is - plot(x=x, y=dnorm(x, mean=0, sd=1), type="l")
+```
+
+***
+#### Question 3 - Probabilities
+**a**\. Using the heart patient data in the 'processed.cleveland.data.txt' file: (link below)   
+(https://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/heart-disease.names)  
+(https://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/processed.cleveland.data)  
+
+- separate the population into male and female groups  
+- calculate the mean and standard deviation for male cholesterol values  
+- create a histogram showing the distribution of male cholesterol values 
+
+cmds to do above in R
+pcd <- read.csv("~/Desktop/schoolwork/dataSci250/week3/processed.cleveland.data.csv", header=FALSE)
+colnames(pcd) <- c("age","sex","cp","trestbps","chol","fbs","restecg","thalach","exang","oldpeak","slope","ca","thal","num")
+malepcd <- subset(pcd, pcd$sex==1)
+femalepcd <- subset(pcd, pcd$sex==0)
+meanMalepcd <- mean(malepcd$chol)
+hist(malcepcd$chol)
+
+````
+
+````
+
+**b**\. Using **rnorm()**, create a normal distribution and compare the histogram of the male cholesterol against the simulated normal distribution. Are they the same? *(can also use dnorm())*
+
+````
+continued from above
+
+sdMalecpd <- sd(malepcd$chol)
+maleRNorm <- rnorm(length(malepcd$chol), mean=meanMalepcd, sd=sdMalecpd)
+ks.test(maleRNorm, malepcd$chol)
+
+my results from the test were D = .043689 and p-value = .9894
+
+This indicates they are very similar, ideally a larger sample size would give better data.
+
+````
+
+**c**\. Using **pnorm()**, determine the probability that a randomly chosen adult male has a cholesterol level of over 260.
+
+````
+1-pnorm(q=260, mean = meanMalepcd, sd = sd(malepcd$chol))
+My answer was .3162294
+````
+
+***
+#### Question 4 - Comparison
+**a**\. Load sample data file from: (http://www.openintro.org/stat/data/cdc.R)  
+*(use "source(file)" function to load external R data.)*
+
+````
+source(file="http://www.openintro.org/stat/data/cdc.R")
+````
+
+**b**\. Create a histogram plot of the weight values:
+
+````
+hist(cdc$weight)
+````
+
+**c**\. Create a new data frame (*young*) from the cdc data file containing individuals between the ages of (18 to 30).
+
+````
+young <- subset(cdc, cdc$age>=18 & cdc$age<=30)
+
+````
+
+**d**\. Use **sample()**, to collect 50 random sample values from the (young) data frame.
+
+````
+youngSample <- sample(young$weight, 50) - getting a sample of ages
+````
+
+**e**\. Describe the distribution of this sample?  
+How does it compare to the distribution of the population from which it was sampled from?
+
+````
+ks.test(youngSample, cdc$weight)
+D = 0.0835 p-value - 0.8745 (not as good as we hope, lets look at some other numbers)
+
+Mean young sample = 171
+sd young sample = 42.620
+mean cdc data = 169.683
+cdc sd = 40.081
+
+Looks like the mean is a little higher and the distribution is a little bit broader.
+````
+
+**f**\. Using **sample()**, create three separate sample collections for (10, 50, 100) samples and plot the histogram of these three data sets. How are they different?  
+
+*using the original cdc data, not the filtered 'young' data*
+
+````
+s10 <- sample(cdc$weight, 10)
+s50 <- sample(cdc$weight, 50)
+s100 <- sample(cdc$weight, 100)
+hist(s10)
+hist(s50)
+hist(s100)
+
+The more samples we grab the closer the distribution begins to look from the original histogram from earlier. The first one really doesn't look like much, it is fairly flat and there are no gaps in the data. The 50 samples actually look a lot closer to a normal distribution skewed a tad towards the low end. The s100 histogrm looks much closer to the hist(cdc$weight) histogram.
+````
+
+***
+#### Question 5 - Confidence Intervals  
+Using the sample data from: (http://www.openintro.org/stat/data/cdc.R)  
+*(use "source()" to load an external file)*
+
+
+**a**\. Create a data frame with the height values from the cdc sample data.
+
+````
+source(file="http://www.openintro.org/stat/data/cdc.R")
+
+````
+
+**b**\. Create a sample data frame with 60 random samples of individual height values. Based on this sample data, what it the average height for these 60 individuals?
+
+````
+library(dplyr)
+s60 <- sample_n(cdc, 60)
+View(s60$height)
+````
+
+**c**\. Calculate a confidence interval (upper, lower bounds) for the sample data.
+
+````
+s60min <- min(s60$height)
+s60max <- max(s60$height)
+s60 <- t.test(s60$height)
+````
+
+**d**\. Write a short loop to create (50) separate sample sets and calculate the confidence intervals for each set. How do the confidence intervals change in the 50 samples?
+
+
+````
+My function
+> randMinMax <- function(heights)
++ {
++     minVector <- c()
++     maxVector <- c()
++     for(i in 1:50){
++         samples <- sample(heights, 60)
++         minVector <- c(minVector, min(samples))
++         maxVector <- c(maxVector, max(samples))
++     }
++     
++     return(data.frame(minVector, maxVector))
++ }
+h50c <- randMinMax(cdc$height)
+View(h50c)
+
+The confidence intervals remain pretty close to each other throughout the 50 samples. There may be an outlier here and there but it is generally very similar. The larger the sample size you take the more likely the numbers are to be close to each other.
+
+````
+
+***
+#### Question 6 - Inference  
+Use **"load()"** to import sample data file from: (http://www.openintro.org/stat/data/nc.RData) and complete the following:
+    
+**a**\. Review the attributes in this data set and determine which ones are categorical or numeric.
+
+````
+Categorical <- mature, premie, marital status, lowBirthWeight, gender, habit, whitemom
+numeric <- fage, mage, weeks, visits, gained, weight
+````
+
+**b**\. Create a side-by-side boxplot of habit and weight. What does the plot highlight about the relationship between these two variables?
+
+````
+smokers <- subset(nc, nc$habit=="smoker")
+nonSmokers <- subset(nc, nc$habit=="nonsmoker")
+boxplot(smokers$weight, nonSmokers$weight, names = c("smokers", "nonsmokers"))
+
+You can immediately see that the mean of weight is higher with the nonsmokers group. It also appears that there are more outliers in the nonsmokers group as well. 
+
+````
+
+**c**\. Using the following statement to compare weight and habit. Is the difference between the mean of nonsmoker and that of smoker statistically significant?
+
+````
+by(nc$weight, nc$habit, mean)
+
+The mean of smoking sample falls within 1 standard deviation of non smoking sample (taking the standard deviation from non smoking sample). The weight does not look statistically significant. 
+````
+
+**d**\. Use the following statement to calculate the inference measure between weight and habit.
+
+````
+inference(y = nc$weight, x = nc$habit, est = "mean", type = "ht", null = 0, alternative = "twosided", method = "theoretical")
+Summary statistics:
+n_nonsmoker = 873, mean_nonsmoker = 7.1443, sd_nonsmoker = 1.5187
+n_smoker = 126, mean_smoker = 6.8287, sd_smoker = 1.3862
+Observed difference between means (nonsmoker-smoker) = 0.3155
+
+H0: mu_nonsmoker - mu_smoker = 0 
+HA: mu_nonsmoker - mu_smoker != 0 
+Standard error = 0.134 
+Test statistic: Z =  2.359 
+p-value =  0.0184 
+
+With such a low p-value it looks as though there is some evidence that smoking leads to decrease in weight.
+````
+
+**e**\. In the statement above, change the type argument to 'ci' to construct a confidence interval for the difference between the weights of babies born to smoking and non-smoking mothers.
+
+````
+Summary statistics:
+n_nonsmoker = 873, mean_nonsmoker = 7.1443, sd_nonsmoker = 1.5187
+n_smoker = 126, mean_smoker = 6.8287, sd_smoker = 1.3862
+Observed difference between means (nonsmoker-smoker) = 0.3155
+
+Standard error = 0.1338 
+95 % Confidence interval = ( 0.0534 , 0.5777 )
+
+Looks like there is a 95% chance that a smoker sample child will be lower weight than a non-smoker sample child. Which seems like a statistically significant piece of information. 
+````
+
+***
+#### Question 7 - Linear Regression  
+Load the sample data file from: (http://www.openintro.org/stat/data/mlb11.RData) and complete the following:
+
+**a**\. Use the **cor()** function to determine the numeric relationship between 'runs' and 'at_bats'.
+
+````
+cor(mlb11$runs, mlb11$at_bats) -> 0.610627
+````
+
+**b**\. Use the custom function **plot_ss()** *(included in RData file)* to create a plot for:
+
+````
+plot_ss(x = mlb11$at_bats, y = mlb11$runs, showSquares = TRUE)
+Not sure what to put here, I can see the plot though.
+````
+
+**c**\. Review the mlb11 data set and select another variable that might be a good predictor of runs.
+
+````{r echo=TRUE}
+tried to write a function but I couldn't figure out how to get a piece of it to work.
+
+findHighestCor <- function(df, testcol){
++     highCor <- 0
++     returnCol <- ""
++     for(i in colnames(df)){
++         View(typeof(i))
++         View(i)
++         if((cor(df$i, testcol)>highCor) & (cor(df$i, testcol)!=1)){
++             returnCol <- i
++         }
++     }
++     
++     return(returnCol)
++ }
+
+For whatever reason df$i would not actually be the column of data I wanted.
+
+Looked at new_slug and new_obs which both had very high correlations. 
+````
+
+**d**\. Create a scatterplot of the two variables and fit a linear model. Determine if there is a linear relationship?
+
+````{r echo=TRUE}
+plot(mlb11$new_obs, mlb11$runs)
+runModel <- lm(runs ~ new_obs, data = mlb11)
+summary(runModel)
+p-value: < 2.2e-16
+
+The p value here seems a little too good. I wonder if that new_obs data means anything or if it is reverse engineered somehow off the data.
+````
+
+***
+#### Question 8 - Linear Regression  
+Use the built-in dataset (*faithful*) and complete the following:
+
+a) Create a linear model *lm()* and capture the standard residuals :
+
+````{r echo=TRUE}
+faithfuLm <- lm(faithful)
+````
+
+b) Using *qqnorm()* create a normal probability plot with *qqline()* showing the comparison:
+
+````{r echo=TRUE}
+qqnorm(faithfulLm$residuals)
+qqline(faithfulLm$residuals)
+````
+
+***
+#### Question 9 - Estimates with Monte Carlo 
+
+Review and correct the following code to obtain an approximate value of Pi
+
+````{r echo=TRUE}
+runs <- 10000
+#runif samples from a uniform distribution
+xs <- runif(runs,min=-0.5,max=0.5)
+ys <- runif(runs,min=-0.5,max=0.5)
+
+in.circle <- xs^2 + ys^2 <= 0.5^2
+mc.pi <- (sum(in.circle)/runs)*4
+
+plot(xs,ys,pch='.',col=ifelse(in.circle,"blue","grey")
+     ,xlab='',ylab='',asp=1,
+     main=paste("MC Approximation of Pi =",mc.pi))
+
+By increasing the number of runs we get a better sample of data and pi gets closer to the real value for PI. 
+````
+
+***
+#### Question 10 (Optional) - Probability Puzzle 
+
+In a country in which people only want boys, every family continues to have children until they have a boy. If they have a girl, they have another child. If they have a boy, they have no more children. What is the proportion of boys to girls in the country? (Explain your answer)
+
+````
+Globally there around 108 to 100 boys to girls. with .1 to 1.7% of children being intersex. Ignoring the intersex part of the equaion lets assume that this country (a fairly unrealistic assumption) uses the same value.
+
+Chances to get a boy on average is B=1+(207/107)B
+Rscript
+p <- 107/207
+children <- runif(1e6) < p #run the test for a million children born                
+sim <- diff(c(TRUE, which(children)))               
+hist(sim, xlab="Children", main="Children Before Boy")
+Boys = sum(sim)-length(sim)
+FamilySize = mean(sim) 
+
+Looks like there would be 51.7 boys per 48.3 girls with about 1.93 children per family.
+
+Found something that answered a similar question like this in stack overflow or something, thought actually using the Rscript would be a nice change of pace from my usual struggles.
+
+````
+
+#### **End**

@@ -1,0 +1,188 @@
+---
+title: "Intro to Machine Learning"
+date: "October 25, 2015"
+output:  html_document
+---
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+```
+```{r}
+rm( list = ls())  # Clear environment
+```
+
+# Lab 6.1 - Linear Regression
+
+#### **Univariant Regression Analysis**
+#### **Multivariant Regression Analysis**
+
+
+## 1\. Regression Review
+
+**Anscombe** sample data set:
+
+````{r}
+data(anscombe)
+attach(anscombe)
+head(anscombe,5)
+````
+
+a\. Correlation of x1 and y1: `r cor(x1, y1)`  
+b\. Correlation of x2 and y2: `r cor(x1, y2)` 
+
+#### Plot of variables -- Look for outliers
+
+````{r}
+par(mfrow=c(2,2)) #create a 2x2 grid for plotting
+plot(x1, y1, main="Plot 1")
+plot(x2, y2, main="Plot 2")
+plot(x3, y3, main="Plot 3")
+plot(x4, y4, main="Plot 4")
+````
+
+***
+## 2\. Simple Linear regression
+
+#### Load **Snake River** data set:
+
+````{r}
+#install.packages("alr3")
+library(alr3)
+data(snake)
+names(snake) = c("content", "yield")
+attach(snake)
+head(snake,5)
+plot(content, yield, xlab="water content of snow", ylab="water yield")
+````
+
+#### Create linear model
+
+````{r}
+yield.fit = lm(yield~content)
+summary(yield.fit)
+````
+
+a\. **Yield** is **0.72538** plus **0.49808** times the content.  
+b\. **p-value** = (**4.632e-08**) which is much less than 0.05 so H0 is significant
+
+#### Plot Regression
+
+````{r}
+plot(content, yield)
+abline(yield.fit, lwd=3, col="red")
+````
+
+#### Plot Fit Analysis
+
+````{r}
+par(mfrow=c(2,2))
+plot(yield.fit)
+````
+
+
+#### Plot Fit Confidence Intervals
+
+````{r}
+qqPlot(yield.fit)
+````
+
+***
+## 3\. Multivariate linear regression
+
+#### Load sample data set (water)
+
+````{r}
+data(water)
+socal.water = water[ ,-1] # Exclude Year
+head(socal.water,5)
+````
+
+#### Exploratory analysis of correlated variables
+
+````{r}
+# install.packages("corrplot")
+library(corrplot)
+water.cor = cor(socal.water)
+corrplot(water.cor, method="ellipse")
+````
+
+#### Feature Selection
+
+a\. We will first build and examine a model with all the features, then drill down with best subsets to select the best fit.
+
+````{r}
+# install.packages("leaps")
+library(leaps)
+fit=lm(BSAAM~., data=socal.water)
+summary(fit)
+````
+
+b\. Create fit subsets:
+
+````{r}
+sub.fit = regsubsets(BSAAM~., data=socal.water)
+best.summary = summary(sub.fit)
+names(best.summary)
+````
+
+c\. Find minimum features:
+
+````{r}
+which.min(best.summary$rss)
+````
+
+d\. Compare fit results using Mallow's Cp:
+
+````{r}
+par(mfrow=c(1,2))
+plot(best.summary$cp, xlab="number of features", ylab="cp")
+plot(sub.fit, scale="Cp")
+````
+
+e\. Create new model on specific features:
+
+````{r}
+best.fit = lm(BSAAM~APSLAKE+OPRC+OPSLAKE, data=socal.water)
+summary(best.fit)
+````
+
+With the three-feature model, F-statistic and all the t-tests have significant p-values. 
+
+#### Plot model fit analysis
+````{r}
+par(mfrow=c(2,2))
+plot(best.fit)
+````
+
+f\. Investigate colinearity
+
+````{r}
+vif(best.fit)
+````
+
+From the adjusted R-Squared values, the two-variable model of **APSLAKE** and **OPSLAKE** produced a value of 0.90, while adding **OPRC** only marginally increased it to 0.92:
+
+````{r}
+ plot(socal.water$OPRC, socal.water$OPSLAKE, xlab="OPRC", ylab="OPSLAKE")
+````
+
+g\. Drop the **OPRC** feature and compare predicted vs actual
+
+````{r}
+fit.2 = lm(BSAAM~APSLAKE+OPSLAKE, data=socal.water)
+
+plot(fit.2$fitted.values, socal.water$BSAAM,xlab="predicted", ylab="actual", main="Predicted vs.Actual")
+````
+
+#### Plot presentation
+
+````{r}
+socal.water["Actual"] = water$BSAAM #create the vector Actual
+socal.water["Forecast"] = NA #create a vector for the predictions named Forecast
+socal.water$Forecast = predict(fit.2) #populate Forecast with the predicted values
+
+library(ggplot2)
+ggplot(socal.water, aes(x=Forecast, y=Actual)) +geom_point() + geom_smooth(method=lm) + labs(title = "Forecast versus Actuals")
+````
+
+
+#### **End**

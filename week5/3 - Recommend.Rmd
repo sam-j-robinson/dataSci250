@@ -1,0 +1,108 @@
+---
+title: "DS250 - Introduction to Data Science"
+author: "Collaborative Filter Recommendations"
+date: "November 1, 2016"
+output:  html_document
+---
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+```
+```{r}
+rm( list = ls())  # Clear environment
+```
+
+### Lab 5 - Item-based recommendations
+
+```{r}
+require(dplyr)
+```
+1\. Create a recommendation model that takes a single movie name input and returns a list of ten (10) recommended movies names.
+
+#### Load Movie data
+
+```{r data_load, warning=FALSE, error=FALSE, echo=FALSE}
+# Load u.data -- 100,000
+df <- read.table("u.data", header=FALSE, sep="\t", na.strings="NA", stringsAsFactors = FALSE )
+names(df) <- make.names(c('user id','movie id','rating','timestamp'))
+
+# Load u.items 1682
+ditems <- read.table("u.item", header=FALSE, sep='|', stringsAsFactors = FALSE,quote='')
+names(ditems) <- make.names(c('movie id', 'movie title', 'release date','video release date','IMDb URL', 'unknown','Action', 'Adventure', 'Animation','Children\'s', 'Comedy', 'Crime','Documentary', 'Drama', 'Fantasy','Film-Noir', 'Horror', 'Musical', 'Mystery','Romance',
+'Sci-Fi','Thriller', 'War', 'Western'))
+
+# Load u.users -- 943
+dusers <- read.table("u.user", header=FALSE, sep='|', stringsAsFactors = FALSE, quote='')
+```
+
+#### Oh great -- duplicate movie entries
+
+```{r list_dups, warning=FALSE, error=FALSE, echo=TRUE}
+dup <- ditems[duplicated(ditems$movie.title) | duplicated(ditems$movie.title,fromLast = TRUE),]
+dup[order(dup$movie.title),][,1:2]
+```
+
+#### Join and Factor to remove duplicates
+
+```{r remove_dups, warning=FALSE, error=FALSE, echo=TRUE}
+dx <- left_join(df, ditems[,1:2], by='movie.id')
+dx$movie.title <- as.factor(dx$movie.title)
+```
+
+#### Create Movie rating -- takes a few minutes
+
+```{r movie_ratings, warning=FALSE, error=FALSE, echo=TRUE}
+df.userxitems <- data.frame(matrix(nrow=nrow(dusers), ncol=nlevels(dx$movie.title)))
+df.userxitems[,] <- 0
+
+for (i in 1:nrow(dx)) 
+{
+     df.userxitems[dx[i,'user.id'],as.numeric(as.factor(dx[i,'movie.title']))] <- (dx[i,'rating'] - 3)/2
+}
+```
+
+#### Calculate distance between movies
+
+```{r calc_distance, warning=FALSE, error=FALSE, echo=FALSE}
+getCosine <- function(x,y)
+{
+  this.cosine <- sum(x*y,na.rm=TRUE) / (sqrt(sum(x*x,na.rm=TRUE)) * sqrt(sum(y*y,na.rm=TRUE)))
+  return(this.cosine)
+}
+
+# create a matrix to hold the similarity results between movies
+# it will be a square matrix with the list of movies in both row and column
+df.similarity <- matrix(NA,nrow=ncol(df.userxitems), ncol=ncol(df.userxitems))
+colnames(df.similarity) <- as.character(levels(dx$movie.title))
+rownames(df.similarity) <- as.character(levels(dx$movie.title))
+```
+
+```{r similar_matrix, warning=FALSE, error=FALSE, echo=FALSE}
+# Populate the similarity matrix
+for(i in 1:ncol(df.userxitems)) {
+  # Loop through the columns for each column
+  for(j in i:ncol(df.userxitems)) {
+    # Fill in placeholder with cosine similarities
+    df.similarity[i,j] <- getCosine(as.matrix(df.userxitems[i]),as.matrix(df.userxitems[j]))
+    df.similarity[j,i] <- df.similarity[i,j]
+    }
+}
+```
+
+#### Lets find the top 10 neighbors for each movie
+
+```{r view_top, warning=FALSE, error=FALSE, echo=FALSE}
+dx.neighbors <- matrix(NA, nrow=ncol(df.similarity),ncol=11,dimnames=list(colnames(df.similarity)))
+head(dx.neighbors,10)
+```
+
+```{r neighbors, warning=FALSE, error=FALSE, echo=TRUE}
+for(i in 1:nlevels(dx$movie.title)){
+   dx.neighbors[i,] <- (t(head(n=11,rownames(df.similarity[order(df.similarity[,i],decreasing=TRUE),]))))
+}
+```
+
+```{r write_results, warning=FALSE, error=FALSE, echo=FALSE}
+write.csv(dx.neighbors[,2:ncol(dx.neighbors)],'recommendations.csv')
+```
+
+#### **End**

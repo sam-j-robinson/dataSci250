@@ -1,0 +1,91 @@
+Machine learning
+basically: A way to automate analysis
+
+overfitting - Hihghly tuned to specific examples
+underfitting - Taking a small data set that is not representative of the ranges it will see.
+    Poor accuracy is the result of both underfitting and overfitting.
+
+machine learning is good with individual patterns but bad with a lot of noise
+
+algorithm -> sample data -> performance
+
+ensemble algorithms are a collection of different algorithm models.
+feaure space:
+all categorical attributes in a data set
+
+feature:
+a specific categorical attribute
+
+machine learning models are meant to do something very specific
+
+unsupervised machine learning models are when the features are unknown (like for sales or customer churn)
+    how many explanatory variables that go into the ouput that we want.
+
+bayesian networks
+
+Machine Learning Algorithms
+-80/20 rule applies here
+-high accuracy depends on data
+-accuracy can change due to data
+-very expensive to achieve high accuracy
+-iterative process for model selection
+
+may use a suite of algorithms to solve a problem
+
+algorithms that help us know how many clusters there are.
+    I.E. Needs big speedups, need small speedups, need teleports etc.
+
+Unsupervised machine learning core conepts
+    Collaborative filters
+        Modeled from prior user behavior
+    content based filtering
+        Based on users current behavior, tends to need some prior behavior to work with.
+
+The Four Vs
+    Variety
+    Verocity
+    Velocity
+    Volume
+
+SALES MODEL
+
+Vector features
+    Player CC level
+    Player Power level
+    Active Timers
+        length of timers etc.
+    Gold Amount
+    Various Building levels (storage for instance?)
+    event running
+    sale value
+    recent attack  
+        offensive/defensive
+        power lost
+    IC Level
+
+Paired Down (data april to now, from debug log data, purchasing)
+    Last building timer started (timer length)
+    Troops trained in x amount of time (timer length) (power of troops or volume of troops?)
+
+    Lvl 10 infected unit started? 
+    event running
+    Power Lost 24 hrs
+    Last Research Timer started (length)
+    ITEMS BOUGHT (at what price)
+    Items recently used (last 24 hours, what and volume)
+Output
+    What sale would a person in X position buy, what do they need and can our sale make that sale for that person.
+
+
+Dimensions increase process time, reduce accuracy
+
+Dimensionality reduction process
+
+Training time increased by unsupervised models but can get answers just as quickly.
+    clusters of association found by the training
+
+Model space features that both match and don't match
+
+PCA and high correlation matrix
+
+Representative operating characteristic

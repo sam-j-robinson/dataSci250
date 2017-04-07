@@ -1,0 +1,321 @@
+---
+title: "DS250 - Introduction to Data Science"
+date: "November 1, 2016"
+output:  html_document
+---
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+rm( list = ls())  # Clear environment
+```
+
+### Assignment 5 - Building Machine Learning Models
+
+This assignment will cover the basics of machine learning models including feature engineering, primary component analysis, and unsupervised learning models.
+
+#### The objectives of this assignment are:
+* Hands-on practive with dimensionality reduction using SVD, PCA
+* Multiple unsupervised models
+* Build a simple recommendation system using UBCF
+* Unsupervised prediction using decision trees
+
+***
+#### Question 1 - Machine Learning Concepts
+
+**a**\. What is a '**confusion matrix**' and what does it measure?
+````
+This is a table that outputs the how the actual data compares to the real data.
+````
+
+**b**\. Explain what the terms **precision** and **recall** are. How do they relate to the **ROC curve**?
+````
+Precision is how many of your total positive results are "true" positives. Meaning that your model predicts a positive result and the result really is positive.
+Recall is the total number of positive results predicted out of the total number of actual positives. In a binary system a false negative is a positive and should be added to the total number of true positives detected by the system.
+````
+
+**c**\. Describe some of the steps in selecting a machine learning algorithm.
+````
+First you need to review the data and know what it is you are working with. Is it is a binary system? A Linear system or are there a large number of variables you need to compare information to? If the data is simple enough you may want to plot it to get an idea of what the shape of the data is. You may need to perform a principle component analysis to simplify the data.
+````
+**d**\. Describe some of the core activities in **Feature Engineering**.
+````
+First you'll need to see what features you actually need. This may come from a knowledge the data you are looking at or a host of other factors. Then you'll need to clean the data to break it down into a format that can be fed into your machine learning model. (data cleaning) You may need to break down, combine and compare features and models many times before you find out exactly the right features and machine learning model for the job.
+````
+
+***
+#### Question 2 - Feature Engineering
+
+Use the following matrix to complete the following:
+
+````{r ratingMatrix, echo=FALSE}
+ratings = c(3,5,5,5,1,1,5,2,5,1,1,5,3,5,1,5,4,2,4,3,4,2,1,4)
+rating_matrix = matrix(ratings, nrow=6)
+rownames(rating_matrix) = c("Homer","Marge","Bart","Lisa","Flanders","Me")
+colnames(rating_matrix) = c("Avengers","American Sniper","Les Miserable","Mad Max")
+# Print rating matrix
+rating_matrix
+````
+
+**a**\. Using **Single-value decomposition**, refactor the ratingMatrix (U\*D\*VT)
+
+```{r svd, echo=TRUE}
+#install.packages("recommenderlab")
+library(recommenderlab)
+#svd()
+
+ratingssvd <- svd(rating_matrix)
+```
+
+**b**\. From the **svd** results above, estimate the variance of the first two variables
+
+```{r svdVariance, echo=TRUE}
+#sum(svd$d)
+#var = sum(svd$d[1:2])
+var = sum(ratingssvd$d[1:2])/sum(ratingssvd$d)
+#Var = 0.852990755599472
+```
+
+***
+#### Question 3 - Principal Component Analysis
+
+**a**\. Using the **ratings_matrix** from Q2, interpret the PCA analysis using the following:
+
+```{r pca, echo=TRUE}
+library(psych)
+pca = principal(rating_matrix, nfactors=2, rotate="none")
+pca
+summary(pca)
+#Looking at the summary we know that these are largely independent columns with a chi-square value of 1.74 and a DF of -1 we can conclude that the columns are relatively independent from each other.
+```
+
+**b**\. Create a (corrplot) **correlation matrix** from the following:
+
+```{r pca_corr, echo=FALSE}
+library(corrplot)    #Correlation plot
+library(psych)       #PCA package
+library(FactoMineR)  #Additional PCA analysis
+library(ggplot2)     #support scatterplot
+library(GPArotation) #supports rotation
+
+nhl = as.data.frame(read.csv("http://textuploader.com/ae6t4/raw", header=FALSE))
+names(nhl) = c("rank","team","played","wins","losses","OTL","pts","ROW","HROW","RROW","ppc","gg",
+               "gag","five","PPP","PKP","shots","sag","sc1","tr1","lead1","lead2","wop","wosp",
+               "face")
+# Sort by Goals per Game
+# nhl=nhl[order(nhl$gg),]
+
+#We don't need games played or team names to assess this data, both are not meaningful for our discoveries because all teams play the same number of games and team names are not numerical data, they are more like identifiers.
+valueMatrixnhl <- nhl[,!(colnames(nhl) %in% c("team", "played")), drop=FALSE]
+nhlcor <- cor(valueMatrixnhl)
+corrplot(nhlcor, method="circle", type="upper")
+#Ended up plotting the whole thing, not sure if that was the intention but it seemed pretty straightforwards
+```
+
+***
+#### Question 4 - Simple collaborative filter recommendations
+
+```{r jester, echo=TRUE}
+library(recommenderlab)
+data(Jester5k)
+hist(getRatings(normalize(Jester5k)), breaks=100)
+```
+
+**a**\. Split sample data set (Jester5K) into **Training** and **Test** data sets.
+
+```{r jesterSplit, echo=FALSE}
+# 80/20 split of the data for the train and test sets.
+e = evaluationScheme(Jester5k, method="split", train=0.8, given=15, goodRating=5)
+```
+
+**b**\. Use Recommender() function to build a UBCF model on your training data
+
+```{r echo=FALSE}
+library(recommenderlab)
+ubcf = Recommender(getData(e,"train"), "UBCF")
+#ubcf
+```
+
+**c**\. Create user prediction model and evaluate the model performance
+
+```{r echo=FALSE}
+# Create user prediction model -- this will take a few moments
+user_pred = predict(ubcf, getData(e,"known"),type="ratings")
+P1 = calcPredictionAccuracy(user_pred, getData(e, "unknown"))
+
+# Had to look up what the heck the Jester5k was, I actually thought it might be race times but it looks like it is 5 thousand people rating jokes. Fascinating. This actually doesn't look like a very good model. Meaning that we are unable to predict which jokes someone may like based on the jokes they have rated in this data set.
+```
+
+***
+#### Question 5 - Unsupervised Learning
+
+```{r echo=FALSE}
+library("NbClust")
+idf <- iris[, -5]
+```
+
+**a**\. Using the following, evaluate the best number of clusters (k) for this data set (IDF).
+
+```{r echo=FALSE}
+best <- NbClust(idf, diss = NULL, distance = "euclidean", min.nc = 2, max.nc = 15, method = "complete", index = "alllong")
+#Best number of clusers is 3 according to this
+```
+
+**b**\. Review the following plot of the frequency by cluster (k)
+
+```{r echo=FALSE}
+par(mfrow = c(1, 2))
+hist(best$Best.nc[1,], breaks = max(na.omit(best$Best.nc[1,])))
+barplot(table(best$Best.nc[1,]))
+```
+
+**c**\. Perform K-means analysis and review the results using clusplot().
+
+```{r echo=FALSE}
+#install.packages("cluster")
+library("cluster")
+results <- kmeans(idf[1:4], 3, iter.max = 1000, algorithm = "Hartigan-Wong")
+
+par(mfrow = c(1, 1))
+clusplot(idf[1:4], results$cluster, color=TRUE, shade=TRUE,labels=2, lines=1,main='Cluster Analysis for Iris Data Set')
+#This didn't look very good to me, I also used pamk to get an analysis and it gave me a value of 2.
+#pamk gave me a value of 2, wanted to see what that looked like as well.
+results <- kmeans(idf[1:4], 2, iter.max = 1000, algorithm = "Hartigan-Wong")
+
+par(mfrow = c(1, 1))
+clusplot(idf[1:4], results$cluster, color=TRUE, shade=TRUE,labels=2, lines=1,main='Cluster Analysis for Iris Data Set')
+#I actually think 2 is much more represantative here although I don't actually know what these components means in this data set or on this plot.
+```
+
+***
+#### Question 6 - Titanic Survival Model
+
+```{r echo=FALSE}
+#install.packages("titanic")
+library(titanic)
+data(titanic_train)
+
+# Split data sets: Train / Test
+n <- nrow(titanic_train)
+trainset <- sample(1:n, size = round(0.7*n), replace=FALSE) #Appreciate seeing the two ways to make the training and test sets.
+
+train <- titanic_train[trainset,]
+test <- titanic_train[-trainset,]
+```
+
+**a**\. Data preparation - convert labels to Factors
+
+Review missing data
+```{r echo=FALSE}
+sum(is.na(train$Age) == TRUE)
+sapply(train, function(df) { sum(is.na(df)==TRUE)/ length(df); })
+View(Titanic) #Needed to see what the data was after doing this stuff.
+```
+
+####Convert data
+```{r echo=FALSE}
+train$Survived = factor(train$Survived)
+train$Pclass   = factor(train$Pclass)
+test$Survived = factor(test$Survived)
+test$Pclass   = factor(test$Pclass)
+
+# Convert to numeric
+train$Sex[train$Sex=="male"] <- "1"
+train$Sex[train$Sex=="female"] <- "2"
+test$Sex[test$Sex=="male"] <- "1"
+test$Sex[test$Sex=="female"] <- "2"
+
+# Convert to factors
+train$Sex <- factor(train$Sex)
+train$Embarked <- factor(train$Embarked)
+test$Sex <- factor(test$Sex)
+test$Embarked <- factor(test$Embarked)
+
+# Remove empty ("") factors
+train$Embarked[train$Embarked=='']=NA
+train$Embarked = droplevels(train$Embarked)
+
+# Remove empty factors from both
+test$Embarked[test$Embarked=='']=NA
+test$Embarked = droplevels(test$Embarked)
+str(train)
+str(test)
+```
+
+**b**\. Data exploration - execute the following to visualize model attributes
+
+```{r echo=FALSE}
+# Visualize passenger survival
+barplot(table(train$Survived), main="Passenger Survival",  names= c("Perished", "Survived"))
+#More people perished than survived
+barplot(table(train$Pclass), main="Passenger Class",  names= c("first", "second", "third"))
+#More people were in third class than in first and second
+barplot(table(train$Sex), main="Passenger Gender")
+#More men than women were on the ship
+hist(train$Age, main="Passenger Age", xlab = "Age")
+#The age of passengers was skewed to a younger side. I don't know how this compares to the general population at the time. I also wonder if more people in third class were removed because there was unknown data about them making third class people under-represented in this data set.
+```
+
+**c**\. Predicting passenger survival - using Decision Trees model
+
+```{r echo=FALSE}
+#install.packages('party')
+library('party')
+
+# Create Model
+train.ctree = ctree(Survived ~ Pclass + Sex + Age + SibSp + Fare + Parch + Embarked, data=train)
+
+# Plot results
+plot(train.ctree, main="Conditional inference tree of Titanic Dataset")
+```
+
+**d**\. Evaluate model performance
+
+```{r echo=FALSE}
+#install.packages("caret")
+library(caret)
+
+ctree.predict = predict(train.ctree, test)
+confusionMatrix(ctree.predict, test$Survived)
+
+#          Reference
+#Prediction   0   1
+#         0 142  33
+#         1  22  70
+# Looks pretty good to me. We also see a Pos Pred Value of .8114268. So 4/5 predictions are correct in our chart. That's alright, not great. If this was the lives of people and we are trying to predict future behvior I would prefer that our model be MUCH MUCH more accurate.
+
+```
+
+**e**\. Use the following to plot the model performance (ROC)
+
+```{r echo=FALSE}
+#install.packages("ROCR")
+require(ROCR)
+
+# Create probability matrix
+train.ctree.prob =  1- unlist(treeresponse(train.ctree, test), use.names=F)[seq(1,nrow(test)*2,2)]
+train.ctree.prob.rocr = prediction(train.ctree.prob, test$Survived)
+
+# Create performance matrix
+train.ctree.perf = performance(train.ctree.prob.rocr, "tpr","fpr")
+train.ctree.auc.perf =  performance(train.ctree.prob.rocr, measure = "auc", x.measure = "cutoff")
+
+# Plot ROC curve
+plot(train.ctree.perf, col=2,colorize=T, main=paste("AUC:", train.ctree.auc.perf@y.values))
+
+#I'm not sure if an ROC curve is the most appropriate thing to use in this situation. I know it was originally designed for radar in WW2 but fatality rates of WW2 pilots was pretty damn high. I feel like if there are better predictive models to use for this kind of life and death information we shold probably look into it. I'mt not comfortable with the amount of false positive rates we can receive when talking about who dies on a sinking ship.
+```
+
+***
+#### Question 7 (Optional) - Probability Problem
+
+There are two bowls of cookies:
+1) **Bowl 1** contains **30 vanilla** cookies and **10 chocolate cookies**.
+2) **Bowl 2** contains **20** of each
+
+You pull a **vanilla** cookie at random. What is the probability it came from **Bowl 1**? 
+
+````
+If you know your goal is to pull a vanilla cookie wouldn't 100% of the time you would pull the cookie from bowl 1? I don't see any randomness as to which bowl you should pull from. If you are supposed to be blind and not know which bowl your cookie came from. The odds of having a vanilla cookie from bowl 1 is 60% compared to the odds you pulled it from bowl 2. The odds of pulling a Vanilla Cookie AND having it come from bowl 1 are 3/8ths. I feel like I'm missing something here because I don't need to use a decision tree or anything like that for this.
+````
+
+
+#### **End**

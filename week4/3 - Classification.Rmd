@@ -1,0 +1,273 @@
+---
+title: "Intro to Machine Learning"
+date: "October 25, 2015"
+output:  html_document
+---
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+```
+```{r}
+rm( list = ls())  # Clear environment
+```
+
+# Lab 6.3 - Classifiers
+
+````{r}
+#Load required libraries
+install.packages("kknn")
+install.packages("caret")
+install.packages("kernlab")
+install.packages("pROC")
+install.packages("e1071")
+install.packages("reshape2")
+
+library(ggplot2)  #create boxplots
+library(lattice)
+library(class)    #k-nearest neighbors
+library(kknn)     #weighted k-nearest neighbors
+library(e1071)    #SVM
+library(caret)    #select tuning parameters
+library(MASS)     # contains the data
+library(reshape2) #assist in creating boxplots
+library(kernlab)  #assist with SVM feature selection
+library(pROC)
+````
+
+***
+## 1\. Using K-Nearest Neighbors
+
+a\. Load sample data: Pima Indian - National Institute of Diabetes and Digestive and Kidney Diseases
+
+````{r}
+library(MASS)
+data(Pima.tr)
+str(Pima.tr)
+````
+
+````{r}
+str(Pima.te)
+````
+
+````{r}
+#Combine data frames
+pima = rbind(Pima.tr, Pima.te)
+````
+
+#### Comnine data frames (Pima)
+
+````{r}
+str(pima)
+````
+
+#### Exploratory Data Analysis
+
+````{r}
+pima.melt = melt(pima, id.var="type")
+ggplot(data=pima.melt, aes(x=type, y=value)) + geom_boxplot() + facet_wrap(~variable, ncol=2)
+````
+
+#### Scale data set
+
+````{r}
+pima.scale = as.data.frame(scale(pima[,-8]))
+str(pima.scale)
+````
+
+````{r}
+#  Include the response in the data frame
+pima.scale$type = pima$type
+
+pima.scale.melt = melt(pima.scale, id.var="type")
+ggplot(data=pima.scale.melt, aes(x=type, y=value)) +geom_boxplot()+facet_wrap(~variable, ncol=2)
+````
+
+
+#### Feature correlation
+
+````{r}
+cor(pima.scale[-8])
+````
+
+
+#### Split data into Training and Test data sets
+
+````{r}
+table(pima.scale$type)
+````
+
+````{r}
+set.seed(502)
+ind = sample(2, nrow(pima.scale), replace=TRUE, prob=c(0.7,0.3))
+train = pima.scale[ind==1,]
+test = pima.scale[ind==2,]
+str(train)
+````
+
+````{r}
+str(test)
+````
+
+#### Selecting value for 'K'
+
+````{r}
+# Create grid for inputs
+grid1 = expand.grid(.k=seq(2,20, by=1))
+control = trainControl(method="cv")
+set.seed(502)
+knn.train = train(type~., data=train, method="knn", trControl=control, tuneGrid=grid1)
+knn.train
+````
+
+#### Test model using optimal 'k-17' value
+
+````{r echo=TRUE}
+knn.test = knn(train[,-8], test[,-8], train[,8], k=17)
+table(knn.test, test$type)
+````
+
+Prediction accuracy: `r (77+28)/147`
+
+#### Calculating KAPPA 
+
+````{r}
+#calculate Kappa
+prob.agree = (77+28)/147 #accuracy
+prob.chance = ((77+26)/147) * ((77+16)/147)
+````
+
+Chance probability: `r prob.chance`  
+**Kappa**: `r (prob.agree - prob.chance) / (1 - prob.chance)`
+
+#### Strength of Agreement
+><0.20       - Poor  
+0.21-0.40   - Fair   
+0.41-0.60   - Moderate   
+0.61-0.80   - Good   
+0.81-1.00   - Very good   
+
+
+#### Tune kNN parameters
+a. Algorithm: epanechnikov
+b. kmax=25
+c. distance=2
+
+````{r echo=TRUE}
+set.seed(123)
+kknn.train = train.kknn(type~., data=train, kmax=25, distance=2, kernel=c("rectangular", "triangular", "epanechnikov"))
+
+plot(kknn.train)
+````
+
+#### Determine the classification error and the best parameter values
+
+````{r echo=TRUE}
+kknn.train
+````
+
+***
+## 2\. Using Scalable-Vector-Machine (SVM)
+
+#### a\. Tune model
+
+````{r echo=TRUE}
+linear.tune = tune.svm(type~., data=train, kernel="linear", cost=c(0.001, 0.01, 0.1, 1,5,10))
+summary(linear.tune)
+````
+
+#### b\. Validate results using Test data set
+
+````{r}
+best.linear = linear.tune$best.model
+tune.test = predict(best.linear, newdata=test)
+table(tune.test, test$type)
+````
+
+Prediction accuracy: `r (80+32)/147`  
+
+
+#### c\. Use Polynomial SVM kernel function
+
+````{r}
+set.seed(123)
+poly.tune = tune.svm(type~., data=train, kernel="polynomial", degree=c(3,4,5), coef0=c(0.1,0.5,1,2,3,4))
+summary(poly.tune)
+````
+
+````{r}
+best.poly = poly.tune$best.model
+poly.test = predict(best.poly, newdata=test)
+table(poly.test, test$type)
+````
+
+#### d\. Use Radial SVM kernel function
+
+````{r}
+set.seed(123)
+rbf.tune = tune.svm(type~., data=train, kernel="radial", gamma=c(0.1,0.5,1,2,3,4))
+summary(rbf.tune)
+````
+
+````{r}
+best.rbf = rbf.tune$best.model
+rbf.test = predict(best.rbf, newdata=test)
+table(rbf.test, test$type)
+````
+
+#### d\. Use Sigmoid SVM kernel function
+
+````{r}
+set.seed(123)
+sigmoid.tune = tune.svm(type~., data=train, kernel="sigmoid", gamma=c(0.1,0.5,1,2,3,4), coef0=c(0.1,0.5,1,2,3,4))
+summary(sigmoid.tune)
+````
+
+````{r}
+best.sigmoid = sigmoid.tune$best.model
+sigmoid.test = predict(best.sigmoid, newdata=test)
+table(sigmoid.test, test$type)
+````
+
+Prediction accuracy: `r (82+35)/147`
+
+***
+## 3\. Model selection
+
+#### a\. Evaluate Sigmoid SVM model using ConfusionMatrix
+
+````{r echo=TRUE}
+confusionMatrix(sigmoid.test, test$type, positive="Yes")
+````
+
+
+#### b\. Evaluate Linear SVM model using ConfusionMatrix
+
+````{r echo=TRUE}
+confusionMatrix(sigmoid.test, test$type, positive="Yes")
+````
+
+
+***
+## 4\. Feature selection
+
+#### a\. Evaluate features using rfeCNTL
+
+````{r echo=TRUE}
+set.seed(123)
+rfeCNTL = rfeControl(functions=lrFuncs, method="cv", number=10)
+svm.features = rfe(train[,1:7], train[,8],sizes = c(7, 6, 5, 4), rfeControl = rfeCNTL, method = "svmLinear")
+svm.features
+````
+
+#### b\. Test model with reduced feature list
+
+````{r}
+svm.5 <- svm(type~glu+ped+npreg+bmi+age, data=train, kernel="linear")
+svm.5.predict <- predict(svm.5, newdata=test[c(1,2,5,6,7)])
+table(svm.5.predict, test$type)
+````
+
+Prediction accuracy: `r (79+33)/147`
+
+
+
+#### **End**

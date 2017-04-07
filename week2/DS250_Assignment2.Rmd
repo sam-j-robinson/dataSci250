@@ -1,0 +1,213 @@
+---
+title: "DS250 - Introduction to Data Science"
+author: "Student Name"
+date: "October 11, 2016"
+output: html_document
+---
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+```
+```{r}
+rm( list = ls())  # Clear environment
+```
+
+# Assignment 2
+This assignment covers experiment study design, hypothesis development, common bias and error issues as well as simple predictive analytics using regression analysis and decision tries and a high level introduction to conditional probability using Bayes theorem.
+
+### The objectives of this assignment are:
+* Understand experiment types and design
+* Understand common errors and bias factors
+* Simple predictive analytics
+* Using R to create linear regression models
+
+***
+#### Question 1 - Experiment Design
+a) Briefly describe some common issues in experiment design:
+
+```
+Removing bias seems to be the biggest common issue, it is so easy to add bias to anything. Lack of control groups can be very difficult, like with pregnancy studies.
+```
+
+b)  In a new drug study using 40 mice (20m / 20f) where half would be treated and the other half are untreated. Also the procedure is complex and is limited to 4 mice per day. What would be the most efficient approach to assign the mice by group and day? 
+
+```
+Set aside 4 mice, 2 male and 2 female to use as a control group. Then in alternating order treat 1 male, 1 female, 1 male, 1 female. On day 2 Treat 1 female, 1 male, 1 female and 1 male. Do this alongside setting aside another group of 4 mice (2 male and 2 female) again for the control group. Repeat this until you have gotten through all your mice. 
+```
+
+c) Briefly describe some of the difference between Experiment vs. Observational studies
+
+```
+Expiremental studies involve having direct influence over your groups, such as changing colors on an app button. Observational studies are where you don't have any influence over your group. Such as seeing birth defect risks with moms that self report as eating organic food vs. non-organic food.
+```
+
+d) Create a simple experiment design for the following:
+
+
+**Study: Plants grow more when exposed to classical music**
+
+Review and complete the following questions:   
+1. How would you design a study of this?  
+
+I would create 5+ groups of plants. Each plant group would get an equal amount of soil, be planted on the same day and have the same amount of water and light each day as well as being in a room with the same temperature. All the plants would be in separate rooms and not be influenced by the audio of the other groups. 1 Group would have no music playing in the room. 1 group would have classical music playing. 2 groups would have different genres playing (or we can scale this up to as many genres as we want to test) and 1 group would have a different genre of music playing each day.
+
+2. How will you select the significant factors?
+
+What we are looking for is plant growth. If we have a flowering plant we could see which plants flower first, have the largest flowers and flower for the longest. If we are using fruits or vegetables we could see which plants have the best yield.
+
+3. How many samples/subjects will you need?
+
+With a confidence interval .1 we would want 97 plants per room. 
+
+4. Briefly describe your experiment approach:  
+
+It is really easy to grow plants indoors and plants also don't really react to anything except the environment they are exposed to. This makes it really easy for us to make each plant be as close as possible to the same growing environments. You can easily automate light exposure, water amount and environmental factors so it is safe to believe that we can make our expirement ONLY have different music as our differentiating factor when growing the plants.
+
+***
+#### Question 2 - Experimental Error
+a) Briefly describe Type 1 experimental errors and provide two (2) examples.
+
+```
+A type 1 expiremental error is false positive.
+Ex 1: When detetcting higgs boson particle the LHC detected a potential sub atomic particle that was expected to be 6X the size of other subatomic particles, turns out it was a false postive. Source: http://phys.org/news/2016-07-physicist-theory-mysterious-large-hadron.html
+Ex 2: Taking a correlation as causation but not accounting for other factors that could have been a direct result. 
+```
+
+b) Briefly describe a Type 2 error and provide two (2) examples:
+
+```
+A type 2 expiremental error is a false negative, where something is considered false when it is actually true.
+Ex 1: In the above example with our plant study if we found that classical music did create increased growth in plants but it turns out someone mixed up a bag of soil and our classical musical group of plants actually had better growing conditions, that could be a false negative.
+Ex 2: You could get a false negative on a pregnancy test if you take the test too early and your body is not producing enough hormones to create a positive in the result.
+```
+
+c) Choose and describe three (3) examples of experimental bias:
+
+```
+Loss Aversion: A great example of loss aversion would be not having bought a house a few years ago with the impending housing bubble in Seattle on it's way. Predicting the bubble was not a perfect science but an increase in technical white collar jobs and the importing of tens of thousands of workers was going to lead to a rapidly inflating housing market. If someone found themselves with the capital to buy a house but chose not to that could be the result of Loss Aversion.
+Empathy Gap: Studies involving addiction and addictions are very prone to having Empathy Gap biases. People may have a very hard time understanding what is going on with someone that is in the midsts of an addiction, which can easily create bias in studies.
+Planning Fallacy Bias: Getting time estimates from programmers is a great example of Planning Fallacy bias. We commonly employ tools (such as agile/scrum, tshirt sizing and point scales) to try and mitigate problems around planning fallacy bias. Whenever we start a large feature I always assume about 50% of the work is unknown, this is based off of historical models that I've made about developement times for in game features. It can be difficult to plan which feature should be made first or finished first as a result. While not technically a study per-se developing game features is as much an iterative process as most other types of Data Science and it feels justifiable to use as an example here. 
+Selective Perception Bias: When polling people internally about how well received a feature or change to a game would be received (would this be observational expirement?) we frequently see overwhelmingly negative reviews from our customer service department. They almost always interact exclusively with players who are frustrated so their perception is being skewed by the negative stimuli they are receiving from frustrated players.
+```
+
+***
+#### Question 3 - Hypothesis Definition
+a) Review the following study description:
+
+A renown doctor claims that 17 year olds have an average body temperature higher than the average (98.6 f). After conducting a random statistical sample of 25 17 year olds, the average temperature is found to be (98.9 f) with a standard deviation of 0.6 degrees f.
+
+b) Identify the hypothesis in this study:
+
+```
+17 Year olds have a higher than average body temperature.
+```
+
+c) Define the null hypothesis (H0) for this study:
+
+```
+17 Year Olds have a statistically average body temparture.
+```
+
+d)  Identify any alternate hypothesis (Ha) applicable for this study:
+
+```
+17 year olds have a statistically higher than average body temperature in cold weather.
+```
+
+***
+#### Question 4 - Causation
+For each of the following statements, assign a value from the list below:  
+  a. There are confounding variables  
+  b. It is unclear which variable is the cause and which is the effect  
+  c. It is unreasonable to generalize from the sample studied  
+  d. The variables actually measured are not related to the effect  
+  e. No plausible alternative explanation exists  
+
+
+1. A County inspector found that 35% of the sprinklers failed to activate under 7 pounds of pressure. However, the manufacturer maintains that the 7 psi threshold for passing or failing does not reflect typical water pressure in sprinkler systems.
+
+```
+C: If the sprinkler system is not expecting 7 pounds of pressure than a 35% failure rate is unimportant to the sprinklers.
+```
+
+2. Samoans have an increasing preference for violence as measured by the steadily increasing number of television sets being sold.
+
+```
+D: TV sets are not proven to cause an increasing preference for violence.
+```
+
+3. A new study suggests that women do not have the ability to be orchestra conductors since only a small percentage of orchestra conductors are women
+
+```
+B: Not having a lot of women conductors is not indictive of a woman's individual ability to be a conductor.
+```
+
+***
+#### Question 5 - Regression
+a. Briefly describe the difference between linear and logistic regression:
+
+```
+Linear regression models are more often used to find comparative rates (Troops lost per Player vs. Environment instance or Price of a House based on total square feet). Logistical regression models are more often used to find true/false statements where there are two or more state outcomes. I.E. Did someone make a purchase, view your ad or click on your link. 
+```
+
+b. Review and run the following to create linear regression model:
+
+```{r,echo=TRUE}
+#install.packages("gamlss.data")
+library(gamlss.data)
+data("usair")
+model.0 <- lm(y ~ x3, data = usair)
+#summary(model.0)
+```
+
+c. From the prior data set, review and run the following code to create predicted values for the model
+
+```{r,echo=TRUE}
+usair$prediction <- predict(model.0)
+usair$residual   <- resid(model.0)
+```
+
+d. Modify the following plot to show the regression line from the pollution (y) over the population (x3). Add the residuals to show the difference between actual vs. predicted values.
+
+```{r,echo=TRUE}
+plot(y ~ x3, data = usair, cex.lab = 1.5)
+```
+
+***
+#### Question 6 - Logistic Regression
+a. Using plot, review the following general linear model(glm):
+```{r,echo=TRUE}
+cuse <- read.table("http://data.princeton.edu/wws509/datasets/cuse.dat", header=TRUE)
+attach(cuse)
+lrfit <- glm(cbind(using, notUsing) ~  age + education + wantsMore,family = binomial)
+```
+
+***
+#### Question 7 - Decision Trees
+a. Review and run the following code:
+
+```{r,echo=TRUE}
+#install.packages("party")  # Install package if needed
+library("party")
+iris_ctree <- ctree(Species ~ Sepal.Length + Sepal.Width + Petal.Length + Petal.Width, data=iris)
+```
+
+b. Using plot(), create a plot of the decision tree.
+
+***
+#### Question 8 (Optional) - Understanding Probability
+```
+In an act of mercy, the Emperor offers a prisoner a trial to pick one pebble from two (2) bowls. There are fifty (50) white pebbles and fifty (50) black pebbles. The prisoner is blindfolded and must choose only one (1) pebble. If the prisoner chooses a white pebble he will be freed, but if he chooses a black pebble he will be executed. 
+```
+Describe how the pebbles should be distributed to ensure the highest chance of survival.
+
+Without the math there should be 1 white pebble in one bowl and the remaining 99 pebbles in the other bowl.
+
+With the math
+
+x = survival chance
+
+x = (1.0+(49/99))/2 (the number of bowls)
+
+***
+
+#### **End**

@@ -1,0 +1,386 @@
+---
+title: "DS250 - Introduction to Data Science"
+author: "Student Name"
+date: "November 08, 2016"
+output:  html_document
+---
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+```
+```{r}
+rm( list = ls())  # Clear environment
+```
+
+### Assignment 6 - Data Mining
+
+This assignment introduces concepts and tools used in extracting information from large data sets. Data mining supports knowledge discovery through the process of identifying patterns, mapping and scoring, and finding associations to determine structure in a data set.
+
+#### The objectives of this assignment are:
+* Understand the knowledge discovery process
+* Apply decision trees and association rules
+* Understand time-series trend analysis
+* Apply text mining techniques for reconition and frequency analysis
+* Understand sentiment analysis
+* Understand network data structures and graph data systems
+
+***
+#### Question 1 - Association Rules -- Predict adult income 
+
+**a**\. Load survey sample data: Census Income dataset  
+(https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data)  
+(https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.names)  
+
+```{r echo=FALSE}
+# Load sample data
+# flag lines containing '?' as 'NA'
+
+survey <- read.table(url("https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data"),
+              header=FALSE, sep=",",
+              na.strings =c("?"), 
+              strip.white = TRUE) 
+
+# remove lines containing 'NA'
+#survey.complete <- survey[complete.cases(survey),] 
+
+# Set column names
+colnames(survey.complete) <- c('age','workclass','fnlwgt','education','educationnum',
+   'maritalstatus','occupation','relationship','race','sex','capitalgain','capitalloss',
+   'hoursweek','nativecountry','salaryrange')
+```
+
+**b**\. Create category features
+
+* Age: (15, 25, 45, 65, 100) - ('Young', 'Middle-aged', 'Senior', 'Elder')  
+* Hours per Week: (0, 25, 40, 60, 168) - ('Part-time', 'Full-time', 'Over-time', 'Workaholic')  
+* Capital Gains: (<=0, median, 1e+06) - ("None", "Low", "High")  
+* Captial Loss:  (<=0, median, 1e+06) - ("None", "Low", "High")  
+
+```{r echo=FALSE}
+# Convert to Categories
+survey.complete$age <- ordered(cut(survey.complete$age, c(15, 25, 45, 65, 100)),
+                               labels = c('Young', 'Middle-aged', 'Senior', 'Old')) 
+
+survey.complete$hoursweek <- ordered(cut(survey.complete$hoursweek, c(0, 25, 40, 60, 168)),
+                               labels = c('Part-time', 'Full-time', 'Over-time', 'Workaholic')) 
+
+survey.complete$capitalgain <- ordered(cut(survey.complete$capitalgain,
+                               c(-Inf, 0, 
+                               median(survey.complete$capitalgain[survey.complete$capitalgain>0]),
+                               1e+06)),
+                               labels = c("None", "Low", "High"))
+
+survey.complete$capitalloss <- ordered(cut(survey.complete$capitalloss,
+                               c(-Inf, 0, 
+                               median(survey.complete$capitalloss[survey.complete$capitalloss >0]),
+                               1e+06)),
+                               labels = c("None", "Low", "High"))
+
+# Review results
+summary(survey.complete)
+head(survey.complete[,1],3)
+#I wonder if in this survey it makes sense for us to remove everyone from outside the united states because it is such a small part of the data set. It seems like having about 2 or 3 % of the data from other countries doesn't make a lot of sense for this comparison.
+```
+
+**c**\. Using 'arules', create an apriori association model from the census data
+
+```{r echo=FALSE}
+#detach(package:tm, unload=TRUE) # Need to detach (TM) library with conflicting inspect()
+library(arules)
+survey.transactions <- as(survey.complete[,c(-3,-5)], "transactions") 
+summary(survey.transactions)
+```
+
+**d**\. List the top (10) rules based on support:
+
+```{r echo=FALSE}
+rules <- apriori(survey.transactions, parameter = list(supp=0.05, conf=0.95))
+top.support <- sort(rules, decreasing = TRUE, na.last = NA, by = "support")
+inspect(head(top.support, 10))
+ #   lhs                                                rhs                support   confidence lift     
+#1   {}                                              => {capitalloss=None} 0.9526888 0.9526888  1.0000000
+#34  {nativecountry=United-States}                   => {capitalloss=None} 0.8678138 0.9516798  0.9989408
+#33  {race=White}                                    => {capitalloss=None} 0.8172867 0.9505649  0.9977706
+#32  {salaryrange=<=50K}                             => {capitalloss=None} 0.7282010 0.9695418  1.0176899
+#31  {salaryrange=<=50K}                             => {capitalgain=None} 0.7198130 0.9583738  1.0464260
+#30  {workclass=Private}                             => {capitalloss=None} 0.7070486 0.9569236  1.0044451
+#382 {capitalgain=None,salaryrange=<=50K}            => {capitalloss=None} 0.6969365 0.9682189  1.0163013
+#383 {capitalloss=None,salaryrange=<=50K}            => {capitalgain=None} 0.6969365 0.9570661  1.0449981
+#381 {nativecountry=United-States,salaryrange=<=50K} => {capitalloss=None} 0.6587428 0.9687942  1.0169052
+#380 {nativecountry=United-States,salaryrange=<=50K} => {capitalgain=None} 0.6514488 0.9580672  1.0460912
+
+```
+
+**e**\. List the top (10) rules based on confidence:
+
+```{r echo=FALSE}
+top.confidence <- sort(rules, decreasing = TRUE, na.last = NA, by = "confidence")
+inspect(head(top.confidence, 10))
+
+#    lhs                                                  rhs                                support    confidence lift    
+#48  {workclass=Self-emp-not-inc,relationship=Husband} => {sex=Male}                         0.05042769 1          1.479980
+#96  {age=Young,hoursweek=Part-time}                   => {salaryrange=<=50K}                0.05361050 1          1.331420
+#130 {occupation=Exec-managerial,relationship=Husband} => {maritalstatus=Married-civ-spouse} 0.07101651 1          2.144472
+#131 {occupation=Exec-managerial,relationship=Husband} => {sex=Male}                         0.07101651 1          1.479980
+#137 {occupation=Craft-repair,relationship=Husband}    => {sex=Male}                         0.08195743 1          1.479980
+#149 {occupation=Prof-specialty,relationship=Husband}  => {sex=Male}                         0.05798687 1          1.479980
+#200 {education=Bachelors,relationship=Husband}        => {sex=Male}                         0.07625489 1          1.479980
+#246 {education=Some-college,relationship=Husband}     => {sex=Male}                         0.07850938 1          1.479980
+#259 {relationship=Husband,salaryrange=>50K}           => {sex=Male}                         0.18828327 1          1.479980
+#279 {age=Senior,relationship=Husband}                 => {sex=Male}                         0.15048737 1          1.479980
+
+```
+
+***
+#### Question 2 - Association Rules -- Identify related items in shopping cart checkout
+
+**a**\. Load internal basket sample data: Groceries
+
+```{r echo=FALSE}
+# Load sample data
+library(arules)
+library(arulesViz)
+data("Groceries")
+```
+
+**b**\. Calculate rules using apriori specifying support and confidence thresholds:
+
+```{r echo=FALSE}
+# Use apriori() function to evaluate rules
+rules <- apriori(Groceries, parameter = list(supp = 0.001, conf = 0.5))
+options(digits=2)
+inspect(rules[1:5])
+
+# Rules summary
+summary(rules)
+#rule length distribution (lhs + rhs):sizes
+  # 2    3    4    5    6 
+ # 11 1461 3211  939   46 
+
+#   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ #   2.0     3.0     4.0     3.9     4.0     6.0 
+
+#summary of quality measures:
+#    support         confidence        lift     
+ #Min.   :0.0010   Min.   :0.50   Min.   : 2.0  
+ #1st Qu.:0.0011   1st Qu.:0.55   1st Qu.: 2.5  
+ #Median :0.0013   Median :0.60   Median : 2.9  
+ #Mean   :0.0017   Mean   :0.62   Mean   : 3.3  
+ #3rd Qu.:0.0017   3rd Qu.:0.68   3rd Qu.: 3.7  
+ #Max.   :0.0223   Max.   :1.00   Max.   :19.0  
+
+#mining info:
+#      data ntransactions support confidence
+# Groceries          9835   0.001        0.5
+
+```
+
+**c**\. Inspect the top 5 rules by lift:
+
+```{r echo=FALSE}
+top.lift <- sort(rules, decreasing = TRUE, na.last = NA, by = "lift")
+inspect(head(top.lift, 10))
+```
+
+**d**\. Using ItemFrequencyPlot create a frequency plot of the rules
+
+```{r echo=FALSE}
+itemFrequencyPlot(Groceries,topN=25,type="absolute")
+```
+
+**e**\. Create a Graph plot of the top (10) rules by lift
+
+```{r echo=FALSE}
+rules<-sort(rules, decreasing=TRUE,by="lift")
+inspect(rules[1:5])
+library(arulesViz)
+plot(rules[1:10], method="graph", control=list(type="items"))
+```
+
+***
+#### Question 3 - Outliers
+Using internal IRIS data set, identify the outliers in (Sepal.Length Sepal.Width Petal.Length Petal.Width) values
+
+**a**\. Create Density Plot
+```{r echo=FALSE}
+install.packages("DMwR")
+library(DMwR)
+data(iris)
+
+iris2 <- iris[,1:4]  # Pull Length, Width, Length
+lof.scores <- lofactor(iris2,k=3)
+plot(density(lof.scores))
+outliers <- order(lof.scores, decreasing=T)[1:5]
+print(outliers) #[1]  42 110  23 107  21
+```
+
+**b**\. Print outliers
+```{r echo=FALSE}
+# Locate and print outliers
+outliers <- order(lof.scores, decreasing=T)[1:5]
+# print(outliers)
+#[1]  42 110  23 107  21
+```
+
+***
+#### Question 4 - Text mining -- Create a word-cloud graphic from the following:
+
+**a**\. Download text file for processing
+
+```{r echo=FALSE}
+#install.packages("tm")
+#install.packages("wordcloud")
+
+library(tm)
+library(wordcloud)
+
+# *** Change the destination to your local system ***
+#download.file('http://www.sthda.com/sthda/RDoc/example-files/martin-luther-king-i-have-a-dream-speech.txt', 'c:/temp/devdata.txt')
+```
+
+**b**\. Create a corpus from the text file
+
+```{r echo=FALSE}
+speech <- "http://www.sthda.com/sthda/RDoc/example-files/martin-luther-king-i-have-a-dream-speech.txt"
+#Doing it this way worked better than downloading it like from above. However, when I went to the website and did a save-as it didn't seem to work when I imported the data and then tried to run the commands below on it.
+modi_txt = readLines(speech)
+head(modi_txt)
+modi<-Corpus(VectorSource(modi_txt))
+```
+
+**c**\. Clean text for processing
+
+* Strip whitespace
+* Change to lower case
+* Remove stop words
+* Apply stem word processing (Snowballc package)
+* Remove punctuation symbols
+* Review tm_map and remove common, but insignificant words
+
+```{r echo=FALSE}
+modi_data<-tm_map(modi,stripWhitespace)
+modi_data<-tm_map(modi_data,content_transformer(tolower))
+modi_data<-tm_map(modi_data,removeNumbers)
+modi_data<-tm_map(modi_data,removePunctuation)
+modi_data<-tm_map(modi_data,removeWords, stopwords("english"))
+```
+
+**d**\. Create wordcloud
+
+```{r echo=FALSE}
+wordcloud (modi_data, scale=c(5,0.5),
+max.words=100, random.order=FALSE, rot.per=0.35,
+use.r.layout=FALSE, colors=brewer.pal(8, "Dark2"))
+```
+
+***
+#### Question 5 - Entity Identification -- Create document term matrix from the following transcript: 
+(https://canvas.uw.edu/files/38879848/download?download_frd=1)
+
+**a**\. Load transcript file and separate words by speaker
+
+```{r echo=FALSE}
+# Be sure to download the file from above
+library(tm)
+library(zoo)
+library(SnowballC)
+require(ggplot2)
+
+#Load text from file
+#Transcript <- readLines('C:/Temp/debate_2012_nyt.txt') # Please update to the local directory
+Transcript <- readLines('~/schoolwork/dataSci250/week6/debate_2012_nyt.txt')
+head(Transcript, 5)
+
+Transcript <- data.frame(Words = Transcript, Speaker = NA, stringsAsFactors = FALSE)
+Transcript$Speaker[regexpr("LEHRER: ", Transcript$Words) != -1] <- 1
+Transcript$Speaker[regexpr("OBAMA: ", Transcript$Words) != -1] <- 2
+Transcript$Speaker[regexpr("ROMNEY: ", Transcript$Words) != -1] <- 3
+table(Transcript$Speaker)
+
+#  1  2  3 
+# 98 57 81 
+
+```
+
+**b**\. Remove moderator from transcript
+
+```{r echo=FALSE}
+# Remove moderator:
+Transcript$Speaker <- na.locf(Transcript$Speaker)
+Transcript <- Transcript[Transcript$Speaker != 1, ]
+
+myCorpus <- Corpus(DataframeSource(Transcript))
+
+#   2   3 
+# 294 352 
+```
+
+**c**\. Clean text for processing
+
+* Strip whitespace
+* Change to lower case
+* Remove stop words
+* Apply stem word processing (Snowballc package)
+* Remove punctuation symbols
+* Review tm_map and remove common, but insignificant words
+
+```{r echo=FALSE}
+myCorpus <- tm_map(myCorpus, tolower)  # Make lowercase
+myCorpus <- tm_map(myCorpus, removePunctuation, preserve_intra_word_dashes = FALSE)
+myCorpus <- tm_map(myCorpus, removeWords, stopwords("english"))  # Remove stopwords
+myCorpus <- tm_map(myCorpus, removeWords, c("lehrer", "obama", "romney"))
+myCorpus <- tm_map(myCorpus, stemDocument)  # Stem words
+myCorpus <- tm_map(myCorpus, PlainTextDocument)
+```
+
+
+**d**\. Using docTermMatrix, create a document matrix
+
+```{r echo=FALSE}
+docTermMatrix <- DocumentTermMatrix(myCorpus)
+docTermMatrix
+```
+
+**e**\. Print table of word frequency by speaker
+
+```{r echo=FALSE}
+# Term frequency analyssis
+findFreqTerms(docTermMatrix, 2, 100)
+findFreqTerms(docTermMatrix, lowfreq=10)
+findAssocs(docTermMatrix, 'america', 0.30)
+
+docTermMatrix <- inspect(docTermMatrix)
+sort(colSums(docTermMatrix))
+table(colSums(docTermMatrix))
+
+termCountFrame <- data.frame(Term = colnames(docTermMatrix))
+termCountFrame$Leher  <- colSums(docTermMatrix[Transcript$Speaker == 1, ])
+termCountFrame$Obama  <- colSums(docTermMatrix[Transcript$Speaker == 2, ])
+termCountFrame$Romney <- colSums(docTermMatrix[Transcript$Speaker == 3, ])
+```
+
+**f**\. Create plot of word frequency (Romney / Obama)
+
+```{r}
+zp1 <- ggplot(termCountFrame)
+zp1 <- zp1 + geom_text(aes(x = Obama, y = Romney, label = Term))
+#zp1
+
+#One thing I find interesting is that I feel like Obama uses the word "now" a lot, this seems to be backed up by this Matrix. The second is that Romney says the word tax a lot, I wonder if Republican presidential candidates in general tend to say the word tax more often than democrat ones.
+#I actually like the word word clouds more because I think they make it easier to parse but I appreciate how the dot matrix is good when you have a pre-determined number of speekers. It really seems like anything mentioned fewer than 10 times shouldn't even be on this chart.
+termCountSimple <- subset(termCountFrame, termCountFrame$Obama >= 10 | termCountFrame$Romney >= 10)
+zp2 <- ggplot(termCountSimple)
+zp2 <- zp2 <- geom_text(aes(x = Obama, y = Romney, label = Term))
+zp2
+#This graph actually still looks strange to me, I could probably set the X and Y values to start at 10 if I was a little more savvy with GG plot but at least I can almost make out some of the less frequently used terms.
+```
+
+***
+#### Question 6 (OPTIONAL) - Sentiment Analysis -- Twitter data capture 
+a. Create a Twitter developer account
+b. Activate your account keys
+c. Create Twitter client
+d. Capture topic stream
+e. Analyze term frequency
+
+#Maybe some other week, no thanks right now. I do want to do this with in game stream data but people talk in short hand so often I wonder how that would actually end up looking.
+#### **End**
